@@ -5,10 +5,10 @@
 This Python script is designed to process a set of images and their corresponding YOLO8 annotation files and has been tested to work with Roboflow. It performs several tasks including:
 
 1. Loading and displaying the original images and their annotations.
-2. Padding the images to a specified size and drawing a checkerboard pattern on the padded area.
-3. Cropping the padded images into smaller images of a specified size.
-4. Adjusting the annotations to match the cropped images.
-5. Saving the cropped images and their corresponding annotations to a specified output directory.
+2. Resizing the image to ensure it can be evenly split into 640 or 1280 px chunks. The script will check if the image can be split into 12 640px chunks. If it needs more than 12, the chunk size will double to reduce number of output images.
+3. Adjusting the annotations to match the cropped images.
+4. Saving the cropped images and their corresponding annotations to a specified output directory.
+5. Saving resized images into a separate folder.
 
 ## Dependencies
 
