@@ -37,6 +37,9 @@ class_id_to_name = {v: k for k, v in global_class_map.items()}
 # Get a list of all the image files in the source folder
 source_images = [f for f in os.listdir(source_folder) if f.endswith('.jpg')]
 
+# Initialize an empty list to store the names of files that were not found
+not_found_files = []
+
 # Initialize progress bar for source images
 pbar_images = tqdm(total=len(source_images),
                    desc="Processing source images...")
@@ -52,9 +55,13 @@ for source_image in source_images:
     original_annotation_path = os.path.join(
         source_labels_folder, source_image.replace('.jpg', '.txt'))
 
-    # Load the original image
-    original_image = Image.open(original_image_path)
-    width, height = original_image.size
+    try:
+        # Load the original image
+        original_image = Image.open(original_image_path)
+    except FileNotFoundError:
+        print(f"Image file {original_image_path} not found. Skipping to next image.")
+        not_found_files.append(original_image_path)
+        continue
 
     # Store
     original_size = original_image.size
@@ -91,9 +98,10 @@ for source_image in source_images:
 
         print("Drawing the original image and labels...")
 
-    # Load and display the original annotations as polygons
-    with open(original_annotation_path, 'r') as annotation_file:
-        legend_labels = []
+     # Load and display the original annotations as polygons
+  try:
+      with open(original_annotation_path, 'r') as annotation_file:
+          # Rest of your code...
 
         for line in annotation_file:
             parts = line.strip().split()
@@ -103,15 +111,15 @@ for source_image in source_images:
             if translate_classes:
                 source_class_id = convert_number(source_class_id)
 
+
             used_classes.add(source_class_id)
 
-            # if plots enabled
+            ############## if plots enabled
             if draw_plots:
                 vertices = [float(x) for x in parts[1:]]
 
                 # Convert normalized coordinates to pixel coordinates
-                pixel_vertices = [(int(vertices[i] * width), int(vertices[i + 1] * height))
-                                  for i in range(0, len(vertices), 2)]
+                pixel_vertices = [(int(vertices[i] * width), int(vertices[i + 1] * height)) for i in range(0, len(vertices), 2)]
 
                 polygon = plt.Polygon(
                     pixel_vertices,
@@ -124,7 +132,12 @@ for source_image in source_images:
                 ax.add_patch(polygon)
 
                 # Add the label to the legend_labels list
-                # legend_labels.append(str(source_class_id_translation))
+                #legend_labels.append(str(source_class_id_translation))
+
+  except FileNotFoundError:
+    print(f"Annotation file {original_annotation_path} not found. Skipping to next image.")
+    not_found_files.append(original_annotation_path)
+    continue
 
         # if plots enabled
         if draw_plots:
@@ -199,9 +212,14 @@ for source_image in source_images:
                     # Create a box representing the boundary of the cropped region
                     boundary = box(region[0], region[1], region[2], region[3])
 
-                    # Clip the polygon to the boundary
-                    clipped_polygon = polygon.intersection(boundary)
-
+                    try:
+                        clipped_polygon = polygon.intersection(boundary)
+                    except GEOSException as e:
+                        
+                        print(f"GEOSException encountered: {e}")
+                        
+                        continue  # Skip this iteration or add custom handling
+                        
                     # Check if the clipped polygon is not empty
                     if not clipped_polygon.is_empty:
 
@@ -339,3 +357,8 @@ pbar_images.close()
 
 
 print(f"\n{GREEN}{total_sets_complete} sets of images & labels ready, run the cells below to download ZIP{RESET}")
+
+if not_found_files:
+    print(f"These files were not found ({len(not_found_files)}):")
+    for file in not_found_files:
+        print(f'"{file}"')
